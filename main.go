@@ -3,47 +3,38 @@ package main
 import (
 	"fmt"
 	"github.com/joho/godotenv"
+	_ "image/jpeg"
+	_ "image/png"
 	"os"
-	"strings"
-)
-
-const (
-	TARGET_DIR_ENV_KEY_NAME = "TARGET_DIRECTORY"
+	"photo2excel/commons"
+	excel2 "photo2excel/excel"
+	"photo2excel/photos"
 )
 
 func init() {
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(commons.EnvironmentFilePath); err != nil {
 		panic(err)
 	}
 }
 
 func main() {
-	ff, _ := showFiles()
-	for _, f := range ff {
-		fmt.Println(f.Name())
-	}
-}
-
-func showFiles() ([]*os.File, error) {
-	targetDir := os.Getenv(TARGET_DIR_ENV_KEY_NAME)
-	dir, err := os.ReadDir(targetDir)
+	photoFiles, err := photos.showFiles()
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
-	var result []*os.File
-	for _, f := range dir {
-		if f.IsDir() {
-			continue
-		}
-		f, err := os.Open(createFILEPath(targetDir, f.Name()))
-		if err != nil {
-			return nil, err
-		}
-		result = append(result, f)
+	fmt.Println(photoFiles)
+	images, err := photos.openImages(photoFiles...)
+	if err != nil {
+		panic(err)
 	}
-	return result, nil
-}
 
-func createFILEPath(filenames ...string) string {
-	return strings.Join(filenames, string(os.PathSeparator))
+	for _, img := range images {
+		excel, err := excel2.openEXCEL(os.Getenv(commons.OutputTarget))
+		if err != nil {
+			panic(err)
+		}
+		size := (*img).Bounds().Size()
+		excel2.initEXCEL(excel, size.X, size.Y)
+		excel2.writeSquare(excel, *img)
+	}
 }
