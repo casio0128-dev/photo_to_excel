@@ -1,5 +1,5 @@
 version: "1.0"
 settings:
   output_directory: "dist"
-  photo_target_directories:
+  photo_directories:
     - "photo"

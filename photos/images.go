@@ -1,7 +1,6 @@
 package photos
 
 import (
-	"bufio"
 	"image"
 	"image/color"
 	"os"
@@ -24,20 +23,20 @@ func withCompatibleExt(name string) bool {
 	return false
 }
 
-func showFiles() (map[string][]string, error) {
+func ShowFiles() (map[string][]string, error) {
 	setting, err := settings.New()
 	if err != nil {
 		return nil, err
 	}
 
-	photoDir, photoOK := setting.Get(settings.PhotoDir).([]string)
-	if photoOK {
+	photoDir, photoOK := setting.Get(commons.PhotoDir).([]string)
+	if !photoOK {
 		return nil, commons.FailedTypeCastError{}
 	}
 
 	result := make(map[string][]string)
 	for _, pDir := range photoDir {
-		targetDir := createPhotoFilePath(pDir)
+		targetDir := commons.CreateFilePath(pDir)
 		dir, err := os.ReadDir(targetDir)
 		if err != nil {
 			return nil, err
@@ -47,13 +46,13 @@ func showFiles() (map[string][]string, error) {
 			if f.IsDir() || !withCompatibleExt(f.Name()) {
 				continue
 			}
-			result[pDir] = append(result[pDir], createPhotoFilePath(pDir, f.Name()))
+			result[pDir] = append(result[pDir], commons.CreateFilePath(pDir, f.Name()))
 		}
 	}
 	return result, nil
 }
 
-func openImages(files ...string) ([]*image.Image, error) {
+func OpenImages(files ...string) ([]*image.Image, error) {
 	var result []*image.Image
 	for _, file := range files {
 		f, err := os.Open(file)
@@ -61,22 +60,11 @@ func openImages(files ...string) ([]*image.Image, error) {
 			return nil, err
 		}
 
-		nrf := bufio.NewReader(f)
-		if nrf != nil {
-			if err := f.Close(); err != nil {
-				return nil, err
-			}
-		}
-
-		img, _, err := image.Decode(nrf)
+		img, _, err := image.Decode(f) //(b)
 		if err != nil {
 			return nil, err
 		}
 		result = append(result, &img)
 	}
 	return result, nil
-}
-
-func createPhotoFilePath(filenames ...string) string {
-	return strings.Join(filenames, string(os.PathSeparator))
 }
